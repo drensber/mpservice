@@ -1,0 +1,35 @@
+#!/bin/bash
+
+TOP_DIR=`pwd`
+
+
+cat>makefile.inc<<EOF
+MPSERVICE_ROOT= ${TOP_DIR}
+
+MPSERVICE_THIRDPARTY= \${MPSERVICE_ROOT}/downloads/
+
+MPSERVICE_INCLUDE= \${MPSERVICE_ROOT}/include
+MPSERVICE_LIB= \${MPSERVICE_ROOT}/lib
+
+EOF
+
+if [ "${MPSERVICE_BUILD_PLATFORM}" == "x86-glibc-linux-standalone" ]; then
+
+cat>>makefile.inc<<EOF
+MPSERVICE_INCLUDE_FLAGS= -I\${MPSERVICE_INCLUDE}
+MPSERVICE_LIB_FLAGS= -L\${MPSERVICE_LIB}    
+EOF
+
+else
+
+cat>>makefile.inc<<EOF
+MPBOX_ROOT= ${TOP_DIR}/../mpbox
+MPBOX_INCLUDE= \${MPBOX_ROOT}/include
+MPBOX_LIB= \${MPBOX_ROOT}/lib
+
+MPSERVICE_INCLUDE_FLAGS= -I\${MPSERVICE_INCLUDE} -I\${MPBOX_INCLUDE}
+MPSERVICE_LIB_FLAGS= -L\${MPSERVICE_LIB} -L\${MPBOX_LIB}   
+EOF
+
+fi
+

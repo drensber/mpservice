@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<parameters>
+  <!--  web server -->
+  <param name="webserver_port" value="8080" type="string" />
+
+  <!-- Directory where the first music store is located or mounted. -->
+  <!-- Only one is supported for now, this will always be __0 -->
+  <param name="media_dir__0" value="/mnt/smb1" type="string" />
+</parameters>
+

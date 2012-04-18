@@ -1,0 +1,11 @@
+--- boa-0.94.13/src/boa.c.orig	2011-11-12 03:48:43.029697335 -0500
++++ boa-0.94.13/src/boa.c	2011-11-12 03:49:38.249693109 -0500
+@@ -119,7 +119,7 @@
+     open_logs();
+     server_s = create_server_socket();
+     init_signals();
+-    drop_privs();
++    /* drop_privs(); */
+     create_common_env();
+     build_needs_escape();
+ 

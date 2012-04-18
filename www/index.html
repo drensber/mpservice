@@ -1,0 +1,178 @@
+<html>
+  <head>
+    <meta HTTP-EQUIV="pragma" CONTENT="no-cache">
+    <meta HTTP-EQUIV="expires" CONTENT="-1">
+    <title>mpservice</title>
+  </head>
+  
+  <div id="currentlyPlayingDiv"
+       style="height: 80px; width: 100%; padding-bottom:5px; ">
+  </div>
+
+  <div id="controlButtonsDiv" 
+       style="height:45px; padding-top:5px; padding-bottom:5px; width: 100%" >
+    <center>
+      <!-- add attribute class="mybutton" to make buttons big -->
+      <button id="backButton" style="font-size: 200%; "
+	      onClick="doBackward(); ">
+        <img id="backButtonImg" src='backward.png' height="30" width="30">
+      </button>
+      <button id="playPauseButton" style="font-size: 200%; "
+	      onClick="doPause(); ">
+        <img id="playPauseButtonImg" src='pause.png' height="30" width="30">
+      </button>
+      <button id="forwardButton" style="font-size: 200%; "
+	      onClick="doForward(); ">
+        <img id="forwardButtonImg" src='forward.png' height="30" width="30">
+      </button>
+    </center>
+  </div>
+
+  <div id="mainDiv">
+  <div id="trackBrowserDivHeader" 
+       style="position:absolute; top:170; padding-bottom: 0;
+	      padding-left: 0; min-height: 70px; width: 48%; 
+              white-space: nowrap; overflow: auto; ">
+
+    <b>BROWSE BY</b> 
+    <input type="radio" name="navigationTypeRadioButton" 
+	   id="navigationTypeRadioButtonTag" value="tag"
+	   onClick="updateNavigationType(); "> Traditional  
+    <input type="radio" name="navigationTypeRadioButton" 
+	   id="navigationTypeRadioButtonFilename" value="filename"
+	   onClick="updateNavigationType(); "> Filename
+    <br>
+    <div style="padding-left: 30; padding-bottom: 0px; 
+                white-space: nowrap; overflow: auto; ">
+      <input type="radio" name="navigationTypeRadioButton" 
+	     id="navigationTypeRadioButtonRandom" value="random"
+	     onClick="doInitShowSimpleRandomSuggest(); "> 
+      <input type="button" id="navigationTypeRandomButton"
+             value="Random" onClick="doNewSimpleRandomSuggest(); ">
+      <input type="radio" name="navigationTypeRadioButton" 
+	     id="navigationTypeRadioButtonSearch" value="search"
+	     onClick="selectSearchText(); doInitSimpleSearch(); "> Search
+      <input type="text" id="navigationTypeSearchText" 
+             onkeyup="doSimpleSearch(); "
+             onClick="selectSearchText(); doSimpleSearch(); "
+             style="width: 45%; min-width: 0; ">
+    </div>
+    <div id="folderNavigatorDiv" 
+         style="padding-top: 0px; position: absolute; left: 0%; 
+                white-space: nowrap; width: 95%; ">
+      <span style="display: inline-block; width: 90%; overflow: hidden; ">
+      <button id="folderNavigatorBackButton"
+	     style="visibility: hidden; "
+	     onClick="doNavigateBack(); ">
+        <img id="folderNavigatorBackButtonImg" src='navigatebackward.png' 
+             height="15" width="15">
+      </button>
+
+      <span id="folderNavigatorText" 
+            style="display: inline-block; width: 80%; overflow: hidden; "> 
+      </span>
+      </span>
+      <input id="folderNavigatorAddAllButton" 
+	     type="button" value="+ All"
+	     style="font-size: 70%; visibility: hidden; 
+                    position: absolute; right: 0%; height:10; ">
+    </div>
+  </div>
+
+  <div id="trackBrowserDiv" 
+       style="position:absolute; top:240; padding-left: 0; 
+              width: 48%; bottom: 35; overflow: auto; white-space: nowrap; ">
+  </div>
+
+  <div id="playlistDivHeader"
+       style="position:absolute; top:170; left: 52%; 
+	      min-height: 70px; width: 48%;">
+
+    <b>PLAYLIST</b><br>
+    <div style="min-height: 25; padding-bottom: 0px; ">
+    </div>
+    <input id="playlistRemoveAllButton" 
+	   type="button" value="- All"
+	   style="font-size: 70%; visibility: hidden; "
+	   onClick="doRemoveAllFromPlaylist(); height: 10; ">
+  </div>
+
+  <div id="playlistDiv" 
+       style="position:absolute; top:240; left: 52%; width: 48%;
+	      bottom: 35; overflow: auto; white-space: nowrap; ">
+  </div>
+
+  <div id="footerControlsMain"
+       style="visibility: visible; width: 100%;
+	      position: absolute; bottom: 5;">
+      <button id="footerControlsConfigureButton"
+              onClick="configView(); "> 
+        Configure 
+      </button> 
+    
+  </div>
+  </div> <!-- mainDiv -->
+
+  <div id="configStatusDiv" style="display: none; ">
+
+    <div id="configDivStatus"
+         style="position:absolute; top:170; padding-bottom: 0;
+	        padding-left: 0; min-height: 70px; width: 48%; 
+                white-space: nowrap; overflow: auto; ">
+      <span id="statusLabel"
+            style="position: absolute; left: 1%; font-size: 130%;">
+        <b>Status:</b>
+      </span>
+      <br>
+    
+      <!-- contents filled by buildConfigStatusDiv() -->
+    </div>
+    <br>
+
+    <div id="configDivConfig"
+         style="position:absolute; top:170; left: 52%; 
+	        min-height: 70px; width: 48%;">
+      <span id="configurationLabel"
+            style="position: absolute; left: 1%; font-size: 130%;">
+        <b>Configuration:</b>
+      </span>
+      <br>
+    
+      <!-- contents filled by buildConfigStatusDiv() -->
+    </div>    
+    <br>
+<!--
+    <button id="configSaveButton"
+            onClick="mainView(); ">
+      Apply Changes
+    </button>
+-->
+
+    <div id="footerControlsConfigStatus"
+         style="visibility: visible; width: 100%;
+	      position: absolute; bottom: 5;">
+      <button id="configCancelButton"
+              onClick="mainView(); "> 
+        Cancel 
+      </button> 
+    </div>
+  </div>
+
+    
+  <script type="text/javascript" src="mpsutils.js"> </script>
+  <script type="text/javascript" src="Cookie.js"> </script>   
+  <script type="text/javascript" src="uiutils.js"> </script>
+  <script type="text/javascript">
+    // page initialization
+    //document.write("appVersion: " + navigator.appVersion);
+    mpsCookie= new Cookie("mpsData");
+    mpsGetConstants(["version__major__", "version__minor__",
+                     "version__release__", "platform"],
+                    updatePlatformInfo);
+    mpsGetPlaylist(updatePlaylistDisplay, 'all');
+    doNavigateInit();
+    mainView();
+    configStatusDivBuilder = new ConfigStatusDivBuilder();
+    setInterval(doPeriodicUiUpdate, 1000);
+  </script>
+</html>

@@ -1,0 +1,230 @@
+diff -ru boa-0.94.14rc17/src/boa.h boa-0.94.14rc17.new/src/boa.h
+--- boa-0.94.14rc17/src/boa.h	Tue Feb 18 19:03:31 2003
++++ boa-0.94.14rc17.new/src/boa.h	Sun Jul 27 19:49:20 2003
+@@ -144,6 +144,8 @@
+ 
+ /* cgi */
+ void create_common_env(void);
++void cgi_add_export_env(char *var);
++void cgi_add_env(char *var, char *value);
+ void clear_common_env(void);
+ int add_cgi_env(request * req, const char *key, const char *value, int http_prefix);
+ int complete_env(request * req);
+diff -ru boa-0.94.14rc17/src/cgi.c boa-0.94.14rc17.new/src/cgi.c
+--- boa-0.94.14rc17/src/cgi.c	Sun Feb 23 18:47:57 2003
++++ boa-0.94.14rc17.new/src/cgi.c	Sun Jul 27 20:19:03 2003
+@@ -29,8 +29,43 @@
+                            unsigned int extra);
+ 
+ int verbose_cgi_logs = 0;
+-/* The +1 is for the the NULL in complete_env */
+-static char *common_cgi_env[COMMON_CGI_COUNT + 1];
++
++static char **common_cgi_env = NULL;
++static int max_common_cgi_env = 0; /* current allocated common env size */
++int num_common_cgi_env = 0; /* actual common env count */
++
++/*
++ * Name: cgi_add_env
++ * Description: set common cgi env, checking allocation
++ */ 
++
++void cgi_add_env(char *name, char *value)
++{
++    if(common_cgi_env == NULL)
++    {
++        common_cgi_env = malloc(sizeof(char*) * COMMON_CGI_COUNT);
++        max_common_cgi_env = COMMON_CGI_COUNT;
++    }
++    else if(num_common_cgi_env == max_common_cgi_env)
++    {
++        max_common_cgi_env += 4; 
++        common_cgi_env = realloc(common_cgi_env, sizeof(char*) * max_common_cgi_env);
++    }
++    if (common_cgi_env == NULL)
++    {
++        log_error_time();
++        fprintf(stderr, "error reallocating cgi env.\n");
++        exit(1);
++    }
++    common_cgi_env[num_common_cgi_env] = env_gen_extra(name, value, 0);
++    if (common_cgi_env[num_common_cgi_env] == NULL) {
++        log_error_time();
++        fprintf(stderr,
++                "Unable to allocate a component of common_cgi_env - out of memory.\n");
++        exit(1);
++    }
++    num_common_cgi_env++;
++}
+ 
+ /*
+  * Name: create_common_env
+@@ -41,8 +76,6 @@
+ 
+ void create_common_env(void)
+ {
+-    int ix = 0, i;
+-
+     /* NOTE NOTE NOTE:
+        If you (the reader) someday modify this chunk of code to
+        handle more "common" CGI environment variables, then bump the
+@@ -57,46 +90,38 @@
+        "In all cases, a missing environment variable is
+        equivalent to a zero-length (NULL) value, and vice versa."
+      */
+-    common_cgi_env[ix++] = env_gen_extra("PATH",
++    cgi_add_env("PATH",
+                                          ((cgi_path !=
+                                            NULL) ? cgi_path :
+-                                          DEFAULT_PATH), 0);
+-    common_cgi_env[ix++] =
+-        env_gen_extra("SERVER_SOFTWARE", SERVER_VERSION, 0);
+-    common_cgi_env[ix++] = env_gen_extra("SERVER_NAME", server_name, 0);
+-    common_cgi_env[ix++] =
+-        env_gen_extra("GATEWAY_INTERFACE", CGI_VERSION, 0);
+-
+-    common_cgi_env[ix++] =
+-        env_gen_extra("SERVER_PORT", simple_itoa(server_port), 0);
++                                          DEFAULT_PATH));
++    cgi_add_env("SERVER_SOFTWARE", SERVER_VERSION);
++    cgi_add_env("SERVER_NAME", server_name);
++    cgi_add_env("GATEWAY_INTERFACE", CGI_VERSION);
++    cgi_add_env("SERVER_PORT", simple_itoa(server_port));
+ 
+     /* NCSA and APACHE added -- not in CGI spec */
+ #ifdef USE_NCSA_CGI_ENV
+-    common_cgi_env[ix++] =
+-        env_gen_extra("DOCUMENT_ROOT", document_root, 0);
++    cgi_add_env("DOCUMENT_ROOT", document_root);
+ 
+     /* NCSA added */
+-    common_cgi_env[ix++] = env_gen_extra("SERVER_ROOT", server_root, 0);
++    cgi_add_env("SERVER_ROOT", server_root);
+ #endif
+ 
+     /* APACHE added */
+-    common_cgi_env[ix++] = env_gen_extra("SERVER_ADMIN", server_admin, 0);
+-    common_cgi_env[ix] = NULL;
++    cgi_add_env("SERVER_ADMIN", server_admin);
++}
+ 
+-    /* Sanity checking -- make *sure* the memory got allocated */
+-    if (ix != COMMON_CGI_COUNT) {
+-        log_error_time();
+-        fprintf(stderr, "COMMON_CGI_COUNT not high enough.\n");
+-        exit(1);
+-    }
++/*
++ * Name: cgi_add_export_env
++ * Description: export an environment variable into the common cgi env.
++ */ 
+ 
+-    for (i = 0; i < ix; ++i) {
+-        if (common_cgi_env[i] == NULL) {
+-            log_error_time();
+-            fprintf(stderr,
+-                    "Unable to allocate a component of common_cgi_env - out of memory.\n");
+-            exit(1);
+-        }
++void cgi_add_export_env(char *var)
++{
++    char *value = getenv(var);
++    if(value != NULL)
++    {
++        cgi_add_env(var,value);
+     }
+ }
+ 
+@@ -104,12 +129,15 @@
+ {
+     int i;
+ 
+-    for (i = 0; i <= COMMON_CGI_COUNT; ++i) {
++    for (i = 0; i <= num_common_cgi_env; ++i) {
+         if (common_cgi_env[i] != NULL) {
+             free(common_cgi_env[i]);
+             common_cgi_env[i] = NULL;
+         }
+     }
++    free(common_cgi_env);
++    common_cgi_env = NULL;
++    num_common_cgi_env = max_common_cgi_env = 0;
+ }
+ 
+ /*
+@@ -200,7 +228,7 @@
+ {
+     int i;
+ 
+-    for (i = 0; common_cgi_env[i]; i++)
++    for (i = 0; i < num_common_cgi_env; i++)
+         req->cgi_env[i] = common_cgi_env[i];
+ 
+     {
+diff -ru boa-0.94.14rc17/src/config.c boa-0.94.14rc17.new/src/config.c
+--- boa-0.94.14rc17/src/config.c	Tue Feb 18 19:06:48 2003
++++ boa-0.94.14rc17.new/src/config.c	Sun Jul 27 19:50:40 2003
+@@ -74,6 +74,8 @@
+ static void c_set_int(char *v1, char *v2, void *t);
+ static void c_set_unity(char *v1, char *v2, void *t);
+ static void c_add_mime_types_file(char *v1, char *v2, void *t);
++static void c_add_cgi_export_env(char *v1, char *v2, void *t);
++static void c_add_cgi_env(char *v1, char *v2, void *t);
+ static void c_add_mime_type(char *v1, char *v2, void *t);
+ static void c_add_alias(char *v1, char *v2, void *t);
+ static void c_add_access(char *v1, char *v2, void *t);
+@@ -141,6 +142,8 @@
+     {"MimeTypes", S1A, c_add_mime_types_file, NULL},
+     {"DefaultType", S1A, c_set_string, &default_type},
+     {"DefaultCharset", S1A, c_set_string, &default_charset},
++    {"PassEnv", S1A, c_add_cgi_export_env, NULL},
++    {"SetEnv", S2A, c_add_cgi_env, NULL},
+     {"AddType", S2A, c_add_mime_type, NULL},
+     {"ScriptAlias", S2A, c_add_alias, &script_number},
+     {"Redirect", S2A, c_add_alias, &redirect_number},
+@@ -270,6 +272,16 @@
+         *(int *) t = 1;
+ }
+ 
++static void c_add_cgi_export_env(char *v1, char *v2, void *t)
++{
++	cgi_add_export_env(v1);
++}
++
++static void c_add_cgi_env(char *v1, char *v2, void *t)
++{
++	cgi_add_env(v1,v2);
++}
++
+ static void c_add_mime_type(char *v1, char *v2, void *t)
+ {
+     add_mime_type(v2, v1);
+--- boa-0.94.14rc17/src/request.c	Sun Mar  9 19:18:54 2003
++++ boa-0.94.14rc17-new/src/request.c	Tue Jul 29 11:20:57 2003
+@@ -35,6 +35,8 @@
+ #define DIE_ON_ERROR_TUNING_SNDBUF
+ */
+ 
++extern int num_common_cgi_env;
++
+ unsigned total_connections = 0;
+ unsigned int system_bufsize = 0; /* Default size of SNDBUF given by system */
+ struct status status;
+@@ -350,7 +352,7 @@
+     if (req->response_status >= 400)
+         status.errors++;
+ 
+-    for (i = COMMON_CGI_COUNT; i < req->cgi_env_index; ++i) {
++    for (i = num_common_cgi_env; i < req->cgi_env_index; ++i) {
+         if (req->cgi_env[i]) {
+             free(req->cgi_env[i]);
+         } else {
+@@ -752,7 +754,7 @@
+         send_r_bad_request(req);
+         return 0;
+     }
+-    req->cgi_env_index = COMMON_CGI_COUNT;
++    req->cgi_env_index = num_common_cgi_env;
+ 
+     return 1;
+ 

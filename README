@@ -1,0 +1,15 @@
+mpservice
+=========
+
+A media-player service with integrated media database, web-server, and 
+web-services control interface.  mpservice is primarily intended to be used 
+with the mpbox embedded Linux platform, but can also run as a standalone
+Linux application.
+
+Instructions to build with mpbox:
+  (Clone the mpbox project and follow it's README)
+
+Instructions to build standalone:
+  % make download
+  % make
+

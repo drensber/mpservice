@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<parameters>
+  
+  <!-- version -->
+  <param name="version__major__" value="0" type="integer" />
+  <param name="version__minor__" value="2" type="integer" />
+  <param name="version__release__" value="8" type="integer" />
+  <param name="version__build__" value="" type="string" />
+
+  <!-- Platform hosting mpservice: mpbox or standalone (i.e. generic
+       linux box -->
+  <param name="platform" value="mpbox" type="enum-string:mpbox,standalone" />
+
+  <!-- Locations of internal resources... in a fixed environment like mpbox,
+       these are fixed locations, so you'd never normally  change them.  In 
+       a standalone mpservice, you might want to move them, but you'd need 
+       to restart everything if you do.
+  -->
+  <param name="live_librarydb_file" value="/mpservice/librarydb/live-library.db" type="string" />
+  <param name="persistent_librarydb_file" value="/disk1/persistent-library.db" type="string" />
+  <param name="live_playlist_file" value="/mpservice/librarydb/live-playlist.db" type="string" />
+  <param name="shm_file" value="/mpsserver" type="string" />
+  <param name="www_dir" value="/mpservice/www" type="string" />
+  <param name="cgi_dir" value="/mpservice/cgi-bin" type="string" />  
+</parameters>
