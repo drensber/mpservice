@@ -10,6 +10,7 @@ Instructions to build with mpbox:
   (Clone the mpbox project and follow it's README)
 
 Instructions to build standalone:
+  % source x86-glibc-linux-standalone.env
   % make download
-  % make
+  % make standalone
 
