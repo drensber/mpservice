@@ -33,7 +33,7 @@ $(CONFIGURED_FLAG): $(UNPACKAGED_FLAG)
 	if [ "${CC}" = "gcc" ]; then \
 	  cd ${PKGDIR}/src; ./configure; \
 	else \
-	  cd ${PKGDIR}/src; CFLAGS="-g -O2 -pipe -Wall" CC="ucfront-gcc ${CROSS_COMPILE}gcc" ./configure --host=${ARCH}-linux; \
+	  cd ${PKGDIR}/src; CFLAGS="-g -O2 -pipe -Wall" CC=${CROSS_COMPILE}gcc ./configure --host=${ARCH}-linux; \
 	fi
 	touch $(CONFIGURED_FLAG)
 

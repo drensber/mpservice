@@ -13,7 +13,7 @@ if [ ! -d ${MXML_BASE} ]; then
     tar xzf ../../downloads/${MXML_BASE}.tar.gz
     cd ${MXML_BASE}
         if [ "${MPSERVICE_BUILD_PLATFORM}" = "x86-uClibc-linux" ]; then
-           ./configure --enable-shared --host=${ARCH}-linux CC="ucfront-gcc ${CROSS_COMPILE}gcc"
+           ./configure --enable-shared --host=${ARCH}-linux CC=${CROSS_COMPILE}gcc
 	else
            ./configure --enable-shared
 	fi

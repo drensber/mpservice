@@ -5,8 +5,8 @@
  else
  
 +ifeq ($(os),uclinux)
-+CC = ucfront-gcc $(CROSS_COMPILE)gcc $(CFLAGS)   
-+LD = ucfront-gcc $(CROSS_COMPILE)gcc -shared $(CFLAGS) $(LDFLAGS)
++CC = $(CROSS_COMPILE)gcc $(CFLAGS)   
++LD = $(CROSS_COMPILE)gcc -shared $(CFLAGS) $(LDFLAGS)
 +LINKOPTS = $(LDLIBS)
 +CFLAGS_OS = -DNOT_HAVE_SA_LEN -DUSES_NETLINK -DHAVE_LINUX
 +JAVACFLAGS_OS += -I$(JDK)/include/linux
