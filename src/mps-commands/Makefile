@@ -2,6 +2,10 @@
 #
 include ../../makefile.inc
 
+CC=$(CROSS_COMPILE)gcc
+CXX=$(CROSS_COMPILE)g++
+STRIP=$(CROSS_COMPILE)strip
+
 SOURCES=mps-player.c mps-library.c mps-playlist.c mps-command-shared.c  
 OBJECTS=$(SOURCES:.c=.o)
 

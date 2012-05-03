@@ -2,6 +2,10 @@
 #
 include ../../makefile.inc
 
+CC=$(CROSS_COMPILE)gcc
+CXX=$(CROSS_COMPILE)g++
+STRIP=$(CROSS_COMPILE)strip
+
 SOURCES=mps-librarydbd.c mps-librarydbd-traverse.c
 OBJECTS=$(SOURCES:.c=.o)
 

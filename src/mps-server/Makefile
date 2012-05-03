@@ -2,6 +2,10 @@
 #
 include ../../makefile.inc
 
+CC=$(CROSS_COMPILE)gcc
+CXX=$(CROSS_COMPILE)g++
+STRIP=$(CROSS_COMPILE)strip
+
 MPG123_OBJ_DIR=mpg123/src
 
 SOURCES=mps-server.c  
