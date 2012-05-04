@@ -26,7 +26,7 @@ install: $(BUILT_FLAG)
 	  $(STRIP) $(MPSERVICE_LIB_DIR)/libmxml.1.dylib; \
 	else \
 	  cp -d mxml/libmxml.*so* $(MPSERVICE_LIB_DIR); \
-	  $(STRIP) $(MPSERVICE_LIB_DIR)/libmxml.so.1.4; \
+	  $(STRIP) $(MPSERVICE_LIB_DIR)/libmxml.so.1.5; \
 	fi 
 
 
