@@ -4,8 +4,8 @@
   
   <!-- version -->
   <param name="version__major__" value="0" type="integer" />
-  <param name="version__minor__" value="2" type="integer" />
-  <param name="version__release__" value="8" type="integer" />
+  <param name="version__minor__" value="3" type="integer" />
+  <param name="version__release__" value="0" type="integer" />
   <param name="version__build__" value="" type="string" />
 
   <!-- Platform hosting mpservice: mpbox or standalone (i.e. generic
