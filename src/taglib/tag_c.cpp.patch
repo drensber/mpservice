@@ -1,0 +1,22 @@
+--- taglib-1.7.2/bindings/c/tag_c.cpp.orig	2012-04-20 11:57:13.000000000 -0400
++++ taglib-1.7.2/bindings/c/tag_c.cpp	2012-06-25 01:21:13.724904894 -0400
+@@ -38,6 +38,8 @@
+ #include <speexfile.h>
+ #include <trueaudiofile.h>
+ #include <mp4file.h>
++#include <aifffile.h>
++#include <wavfile.h>
+ #include <tag.h>
+ #include <string.h>
+ #include <id3v2framefactory.h>
+@@ -94,6 +96,10 @@
+   case TagLib_File_ASF:
+     return reinterpret_cast<TagLib_File *>(new ASF::File(filename));
+ #endif
++  case TagLib_File_AIFF:
++    return reinterpret_cast<TagLib_File *>(new RIFF::AIFF::File(filename));
++  case TagLib_File_WAV:
++    return reinterpret_cast<TagLib_File *>(new RIFF::WAV::File(filename));
+   default:
+     return 0;
+   }

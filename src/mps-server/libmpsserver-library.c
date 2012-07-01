@@ -15,6 +15,10 @@
 
 #include "libmpsserver-private.h"
 
+// MP3_ONLY is temporary until multiple file formats are supported
+//
+#define MP3_ONLY
+
 static int database_element_list_get(mps_library_element_t **element_list,
 				     char *query1, char *query2, char *query3);
 static char *get_file_path_from_id(long id, char *path, sqlite3 *db, int *rc);
@@ -133,7 +137,11 @@ int mps_library_hierarchy_get(mps_library_folder_t **folder, long id)
 	     id);
     snprintf(query_string_two, MAX_SQL_STATEMENT_LENGTH,
 	     "select title_id,file_name from mps_library_titles "
+#ifdef MP3_ONLY
+             "where parent_path_id=%ld and file_type=1 "
+#else
              "where parent_path_id=%ld "
+#endif
 	     "order by file_name; ",
 	     id);
   }
@@ -157,7 +165,12 @@ int mps_library_hierarchy_get(mps_library_folder_t **folder, long id)
        to TagLib, this should be changed. */
     snprintf(query_string, MAX_SQL_STATEMENT_LENGTH, 
 	     "select title_id,title from mps_library_titles "
-             "where album_id=%ld order by file_name; ",
+#ifdef MP3_ONLY
+             "where album_id=%ld and file_type=1 "
+#else
+             "where album_id=%ld "
+#endif
+             "order by ordinal_track_number; ",
 	     id);          
     query_string_two[0] = '\0';
   }
@@ -454,7 +467,11 @@ int mps_library_random(mps_library_folder_t **list,
   case MPS_OBJECT_TYPE_TITLE:
     sprintf(query, 
             "select title_id, title, file_type from mps_library_titles "
+#ifdef MP3_ONLY
+            "where file_type=1 order by random() limit %d", count);
+#else
             "order by random() limit %d", count);
+#endif
     break;
   case MPS_OBJECT_TYPE_ARTIST:
     sprintf(query, 
@@ -523,7 +540,11 @@ int mps_library_simple_search(mps_library_folder_t **list, char *search_string,
   case MPS_OBJECT_TYPE_TITLE:
     sprintf(query, 
             "select title_id, title, file_type from mps_library_titles "
+#ifdef MP3_ONLY
+            "where title like '%%%s%%' and file_type=1 limit %d; ", search_string, limit);
+#else
             "where title like '%%%s%%' limit %d; ", search_string, limit);
+#endif
     break;
   case MPS_OBJECT_TYPE_ARTIST:
     sprintf(query, 

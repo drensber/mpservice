@@ -2,7 +2,7 @@
 #
 include ../makefile.inc
 
-LIB_DIRS=mini-xml mps-server
+LIB_DIRS=mini-xml mps-server taglib
 EXE_DIRS=boa mDNSResponder mps-commands \
 	mps-librarydbd mps-shmtool mps-config
 ALL_DIRS=$(LIB_DIRS) $(EXE_DIRS)

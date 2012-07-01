@@ -11,7 +11,7 @@ OBJECTS=$(SOURCES:.c=.o)
 
 HEADERS=mps-librarydbd.h
 
-LIBS= -lmpsserver -lmxml -lpthread -lsqlite3 -lrt -lmpg123 
+LIBS= -lmpsserver -lmxml -lpthread -lsqlite3 -lrt -ltag -ltag_c
 
 LDFLAGS +=$(MPSERVICE_LIB_FLAGS)
 #CFLAGS +=$(MPSERVICE_INCLUDE_FLAGS) -g -DDEBUG_ENABLED -DMPG123_NO_CONFIGURE

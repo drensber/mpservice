@@ -7,18 +7,16 @@
 #include <string.h>
 #include <stdbool.h>
 #include <libgen.h>
-#include "libmpg123/mpg123.h"
+#include "tag_c.h"
 
-static mps_library_element_type_t get_file_type(char*);
 static void copy_and_sqlite_escape(char *, char *, int); 
 static void sanitize_and_copy (char *, char *, int);
 static int get_track_info(char *fullPath, 
 			  mps_library_track_info_t *track_info);
-static int get_track_info_mp3(char *fullPath, 
-			      mps_library_track_info_t *track_info);
 static int copy_genre_and_convert_if_necessary(char *, char *);
 static long update_artist_table(char *artist, sqlite3 *db);
 static long update_album_table(char *album, long artistId, sqlite3 *db);
+static mps_library_element_type_t mps_get_file_type(char *fullPath);
 
 int mps_librarydb_traverse_directory(char *directoryName, sqlite3 *db,
 				     long caller_file_path_id) 
@@ -93,7 +91,8 @@ int mps_librarydb_traverse_directory(char *directoryName, sqlite3 *db,
 	&& *(directoryElementPointer->d_name) != '.') {
       MPS_DBG_PRINT("Is a regular file\n");
       
-      track_info.file_type = get_file_type(directoryElementPointer->d_name);
+      track_info.file_type = mps_get_file_type(directoryElementPointer->d_name);
+
       if (track_info.file_type == MPS_LIBRARY_UNKNOWN) {
 	MPS_DBG_PRINT("\"%s\" has an unrecognized file type\n", 
 		      directoryElementPointer->d_name);
@@ -170,10 +169,7 @@ int mps_librarydb_traverse_directory(char *directoryName, sqlite3 *db,
 	copy_and_sqlite_escape(escapedGenre, 
                                track_info.genre, 
                                MPS_MAX_TRACK_INFO_FIELD_LENGTH); 
-	
-	/* TODO: figure out how to really get this */
-	track_info.ordinal_track_number = 1;
-	
+		
 	/* update artist table */
 	artistId = update_artist_table(escapedArtist, db);
 	
@@ -309,21 +305,6 @@ int mps_librarydb_traverse_directory(char *directoryName, sqlite3 *db,
   return rv;
 }
 
-static mps_library_element_type_t get_file_type(char* filename)
-{
-  mps_library_element_type_t rv = MPS_LIBRARY_UNKNOWN;
-
-  MPS_DBG_PRINT("Entering %s(%s)\n", __func__, filename);
-  if (strcasestr(filename, ".mp3") != (int)NULL) {
-    rv = MPS_LIBRARY_MP3_FILE;
-  }
-  MPS_DBG_PRINT("Leaving %s() - return value %s\n", 
-		__func__, MPS_LIBRARY_ELEMENT_TYPE_TO_STRING(rv));
-
-  return rv;
-} 
-
-
 static void copy_and_sqlite_escape(char *to, char *from, int len)
 {
   int i, j;
@@ -420,145 +401,135 @@ static void sanitize_and_copy (char *to, char *from, int len)
 }
 
 
-/* expects track_info->file_type to be filled in 
-   prior to calling.   Fills in fields title, album, artist, year, genre, 
-   and time.
-*/
-static int get_track_info(char *fullPath, mps_library_track_info_t *track_info)
+static int get_track_info(char *fullPath, 
+                          mps_library_track_info_t *track_info)
 {
   int rv = MPS_LIBRARYDBD_SUCCESS;
-  MPS_DBG_PRINT("Entering %s(0x%08x)\n", __func__, (unsigned int) track_info);
 
-  switch (track_info->file_type) {
-  case MPS_LIBRARY_MP3_FILE:
-    rv = get_track_info_mp3(fullPath, track_info); 
-    break;
-  default:
-    rv = MPS_LIBRARYDBD_FAILURE;    
-  }
-
-  MPS_DBG_PRINT("Leaving %s() - return value %d\n", __func__, rv);
-
-  return rv;
-}
-
-static int get_track_info_mp3(char *fullPath, 
-			      mps_library_track_info_t *track_info)
-{
-  int rv = MPS_LIBRARYDBD_SUCCESS;
-  mpg123_handle* m;
-  mpg123_id3v1 *v1;
-  mpg123_id3v2 *v2;  
-  int meta;
-  struct mpg123_frameinfo finfo;
-  int err;
-  int tmp;
-  long total_samples;
+  TagLib_File *tagLibFile;
+  TagLib_Tag *tagLibTag;
+  TagLib_File_Type tagLibType;
+  mps_library_element_type_t mpsFileType; 
+  const TagLib_AudioProperties *tagLibProp;
+  char *tmpString;
 
   MPS_DBG_PRINT("Entering %s(0x%08x)\n", __func__, (unsigned int) track_info);
 
-  mpg123_init();
-  m = mpg123_new(NULL, &err);
+  taglib_set_strings_unicode(true);
 
-  if (err != MPG123_OK) {
-    MPS_DBG_PRINT("Call to mpg123_new resulted in error %d\n", err);
+  mpsFileType = track_info->file_type;
+
+  tagLibType = (mpsFileType==MPS_LIBRARY_MP3_FILE?TagLib_File_MPEG:
+                mpsFileType==MPS_LIBRARY_FLAC_FILE?TagLib_File_FLAC:
+                mpsFileType==MPS_LIBRARY_OGG_FILE?TagLib_File_OggVorbis:
+                mpsFileType==MPS_LIBRARY_AAC_FILE?TagLib_File_MP4:
+                mpsFileType==MPS_LIBRARY_APPLE_LOSSLESS_FILE?TagLib_File_MP4:
+                mpsFileType==MPS_LIBRARY_WMA_FILE?TagLib_File_ASF:
+                mpsFileType==MPS_LIBRARY_AIF_FILE?TagLib_File_AIFF:
+                mpsFileType==MPS_LIBRARY_WAV_FILE?TagLib_File_WAV:
+                0);
+
+  tagLibFile = taglib_file_new_type(fullPath, tagLibType);
+
+  if(tagLibFile == NULL) {
+    MPS_DBG_PRINT("Call to taglib_file_new(%s) failed.\n", fullPath);
     rv = MPS_LIBRARYDBD_FAILURE;
     goto ERR_OUT;
   }
+  
+  tagLibTag = taglib_file_tag(tagLibFile);
+  tagLibProp = taglib_file_audioproperties(tagLibFile);
 
-  if(mpg123_open_64(m, fullPath) != MPG123_OK) {
-    MPS_DBG_PRINT("Cannot open %s: %s\n", 
-	      fullPath, mpg123_strerror(m));
-    rv = MPS_LIBRARYDBD_FAILURE;
-    goto ERR_OUT;
-  } 
+  /* TODO: need to go one step further to determine whether a file with
+     an "m4a", etc. header is actually an apple lossless */
+  track_info->file_type = mpsFileType;
 
-  err = mpg123_scan(m);
-  if (err != MPG123_OK) {
-    MPS_DBG_PRINT("Call to mpg123_scan failed.\n");
-    rv = MPS_LIBRARYDBD_FAILURE;
+  tmpString = taglib_tag_title(tagLibTag);
+  if (tmpString != NULL) {
+    copy_string_without_edge_whitespace(track_info->title, 
+                                        tmpString, 
+                                        MPS_MAX_TRACK_INFO_FIELD_LENGTH);
+    MPS_DBG_PRINT("Copied \"%s\" into track_title->title\n", track_info->title);
+  }
+
+  tmpString = taglib_tag_album(tagLibTag);
+  if (tmpString != NULL) {
+    copy_string_without_edge_whitespace(track_info->album, 
+                                        tmpString, 
+                                        MPS_MAX_TRACK_INFO_FIELD_LENGTH);
+    MPS_DBG_PRINT("Copied \"%s\" into track_title->album\n", track_info->album);
+  }
+
+  tmpString = taglib_tag_artist(tagLibTag);
+  if (tmpString != NULL) {
+    copy_string_without_edge_whitespace(track_info->artist, 
+                                        tmpString, 
+                                        MPS_MAX_TRACK_INFO_FIELD_LENGTH);
+    MPS_DBG_PRINT("Copied \"%s\" into track_title->artist\n", track_info->artist);
+  }
+
+  track_info->year = taglib_tag_year(tagLibTag);
+  MPS_DBG_PRINT("Copied \"%d\" into track_title->year\n", track_info->year);
+
+  tmpString = taglib_tag_genre(tagLibTag);
+  if (tmpString != NULL) {
+    copy_string_without_edge_whitespace(track_info->genre, 
+                                        tmpString, 
+                                        MPS_MAX_TRACK_INFO_FIELD_LENGTH);
+    MPS_DBG_PRINT("Copied \"%s\" into track_title->genre\n", track_info->genre);
+  }
+
+  track_info->ordinal_track_number = taglib_tag_track(tagLibTag);
+  MPS_DBG_PRINT("Copied \"%d\" into track_title->ordinal_track_number\n", 
+                track_info->ordinal_track_number);
+
+
+  if (tagLibProp != NULL) {
+    MPS_DBG_PRINT("Setting bitrate, etc.\n");
+    track_info->bitrate = 
+      taglib_audioproperties_bitrate(tagLibProp);
+
+    track_info->sampling_rate = 
+      taglib_audioproperties_samplerate(tagLibProp);
+
+    track_info->channel_mode = 
+      (taglib_audioproperties_channels(tagLibProp) < 2 ?
+       MPS_CHANNEL_MODE_MONO:
+       MPS_CHANNEL_MODE_STEREO);
+
+    track_info->vbr_mode = MPS_VBR_MODE_UNKNOWN;
+    
+    track_info->time_length = 
+      taglib_audioproperties_length(tagLibProp);
+      
+#if 0    
+    track_info->channel_mode = 
+      ((finfo.mode==MPG123_M_STEREO)?MPS_CHANNEL_MODE_STEREO:
+       ((finfo.mode==MPG123_M_JOINT)?MPS_CHANNEL_MODE_JOINT_STEREO:
+        ((finfo.mode==MPG123_M_DUAL)?MPS_CHANNEL_MODE_DUAL_CHANNEL:
+         ((finfo.mode==MPG123_M_MONO)?MPS_CHANNEL_MODE_MONO:
+          MPS_CHANNEL_MODE_UNKNOWN))));
+    
+    track_info->vbr_mode = 
+      ((finfo.vbr==MPG123_CBR)?MPS_VBR_MODE_CONSTANT:
+       ((finfo.vbr==MPG123_VBR)?MPS_VBR_MODE_VARIABLE:
+        ((finfo.vbr==MPG123_ABR)?MPS_VBR_MODE_AVERAGE:
+         MPS_VBR_MODE_UNKNOWN)));
+    
+    if (track_info->sampling_rate > 0) {
+      total_samples = mpg123_length_64(m);
+      track_info->time_length = total_samples/track_info->sampling_rate;
+    }
+#endif
   }
   else {
-    meta = mpg123_meta_check(m);
-    if(!(meta & MPG123_ID3 && mpg123_id3(m, &v1, &v2) == MPG123_OK)) {
-      MPS_DBG_PRINT("Nothing found for %s.\n", fullPath);
-      // Don't return MPS_LIBRARYDBD_FAILURE... may just lack metadata;
-    }
-    else {
-      if(v2 != NULL) {
-	MPS_DBG_PRINT("\n");
-	if (v2->title != NULL && v2->title->fill)
-	  copy_string_without_edge_whitespace(track_info->title, 
-					      v2->title->p, v2->title->fill);
-	MPS_DBG_PRINT("\n");
-	if (v2->album != NULL && v2->album->fill)
-	  copy_string_without_edge_whitespace(track_info->album, 
-					      v2->album->p, v2->album->fill);
-	MPS_DBG_PRINT("\n");
-	if (v2->artist != NULL && v2->artist->fill)
-	  copy_string_without_edge_whitespace(track_info->artist, 
-					      v2->artist->p, v2->artist->fill);
-	MPS_DBG_PRINT("\n");
-	if (v2->year != NULL && v2->year->fill)
-	  track_info->year = atoi(v2->year->p);
-	MPS_DBG_PRINT("\n");
-	if (v2->genre != NULL && v2->genre->fill)
-	  copy_genre_and_convert_if_necessary(track_info->genre, v2->genre->p);
-      }
-      if(v1 != NULL) {
-	MPS_DBG_PRINT("\n");
-	if (v2->title == NULL)
-	  copy_string_without_edge_whitespace(track_info->title, v1->title, 60);
-	MPS_DBG_PRINT("\n");
-	if (v2->album == NULL)
-	  copy_string_without_edge_whitespace(track_info->album, v1->album, 60);
-	MPS_DBG_PRINT("\n");
-	if (v2->artist == NULL)
-	  copy_string_without_edge_whitespace(track_info->artist, 
-					      v1->artist, 60);
-	MPS_DBG_PRINT("\n");
-	if (v2->year == NULL)
-	  track_info->year = atoi(v1->year);
-	MPS_DBG_PRINT("\n");
-	if (v2->genre == NULL)
-	  strcpy(track_info->genre, genre_table[v1->genre]);
-      }
-    }      
-    tmp = mpg123_framebyframe_next(m);
-    if (tmp == MPG123_DONE) {
-      MPS_DBG_PRINT("Error: Received MPG123_DONE position while just decoding the header");
-      rv = MPS_LIBRARYDBD_FAILURE;
-    }
-    else {
-      MPS_DBG_PRINT("Calling mpg123_info.\n");
-      mpg123_info(m, &finfo);
-      
-      MPS_DBG_PRINT("Setting bitrate, etc.\n");
-      track_info->bitrate = finfo.bitrate;
-      track_info->sampling_rate = (int)(finfo.rate);
-      track_info->channel_mode = 
-	((finfo.mode==MPG123_M_STEREO)?MPS_CHANNEL_MODE_STEREO:
-	 ((finfo.mode==MPG123_M_JOINT)?MPS_CHANNEL_MODE_JOINT_STEREO:
-	  ((finfo.mode==MPG123_M_DUAL)?MPS_CHANNEL_MODE_DUAL_CHANNEL:
-	   ((finfo.mode==MPG123_M_MONO)?MPS_CHANNEL_MODE_MONO:
-	    MPS_CHANNEL_MODE_UNKNOWN))));
-      track_info->vbr_mode = 
-	((finfo.vbr==MPG123_CBR)?MPS_VBR_MODE_CONSTANT:
-	 ((finfo.vbr==MPG123_VBR)?MPS_VBR_MODE_VARIABLE:
-	  ((finfo.vbr==MPG123_ABR)?MPS_VBR_MODE_AVERAGE:
-	   MPS_VBR_MODE_UNKNOWN)));
-      if (track_info->sampling_rate > 0) {
-	total_samples = mpg123_length_64(m);
-	track_info->time_length = total_samples/track_info->sampling_rate;
-      }
-    }
+    MPS_LOG("taglib_file_audioproperties() returned NULL");
   }
 
-  mpg123_close(m);
-  mpg123_delete(m);
-  mpg123_exit();
-
  ERR_OUT:
+  taglib_tag_free_strings();
+  taglib_file_free(tagLibFile);
+
   MPS_DBG_PRINT("Leaving %s() - return value %d\n", __func__, rv);
 
   return rv;
@@ -609,7 +580,7 @@ int copy_string_without_edge_whitespace(char *to, char *from, int size)
   int rv = MPS_LIBRARYDBD_SUCCESS;
   int i, real_beginning;
   MPS_DBG_PRINT("Entering %s(0x%08x, %s, %d)\n", 
-	    __func__, (unsigned int)to, from, size);
+                __func__, (unsigned int)to, from, size);
 
   for(i = 0, real_beginning = 0; i < size; i++) {
     if (from[i] == ' ' || from[i] == '\t')
@@ -747,4 +718,49 @@ static long update_album_table(char *album, long artistId, sqlite3 *db)
   return rv;
 }
 
+static mps_library_element_type_t mps_get_file_type(char *fullPath)
+{
+  int pathLength;
+  char *tmpChar, *extension;
+  mps_library_element_type_t mpsFileType = MPS_LIBRARY_UNKNOWN;
 
+  MPS_DBG_PRINT("Entering %s(%s)\n", __func__, filename);
+  
+  pathLength = strlen(fullPath);
+  
+  while(pathLength--) {
+    tmpChar = fullPath + pathLength;
+    if (*tmpChar == '.') {
+      extension = tmpChar + 1;
+      break;
+    }
+  }
+
+  if (pathLength > 0) {
+    if (!strcasecmp(extension, "mp3")) 
+      mpsFileType=MPS_LIBRARY_MP3_FILE;
+    if (!strcasecmp(extension, "flac")) 
+      mpsFileType=MPS_LIBRARY_FLAC_FILE;
+    if (!strcasecmp(extension, "ogg")) 
+      mpsFileType=MPS_LIBRARY_OGG_FILE;
+    if (!strcasecmp(extension, "m4a") ||
+        !strcasecmp(extension, "m4b") ||
+        !strcasecmp(extension, "mp4") ||
+        !strcasecmp(extension, "3g2")) 
+      mpsFileType=MPS_LIBRARY_AAC_FILE;
+    if (!strcasecmp(extension, "alac")) 
+      mpsFileType=MPS_LIBRARY_APPLE_LOSSLESS_FILE;
+    if (!strcasecmp(extension, "wma") ||
+        !strcasecmp(extension, "asf")) 
+      mpsFileType=MPS_LIBRARY_WMA_FILE;
+    if (!strcasecmp(extension, "aif") ||
+        !strcasecmp(extension, "aiff")) 
+      mpsFileType=MPS_LIBRARY_AIF_FILE;
+    if (!strcasecmp(extension, "wav")) 
+      mpsFileType=MPS_LIBRARY_WAV_FILE;
+  }
+
+  MPS_DBG_PRINT("Leaving %s() - return value %s\n", 
+		__func__, MPS_LIBRARY_ELEMENT_TYPE_TO_STRING(rv));
+  return mpsFileType;
+}

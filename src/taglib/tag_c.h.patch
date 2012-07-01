@@ -1,0 +1,13 @@
+--- taglib-1.7.2/bindings/c/tag_c.h.orig	2012-06-25 00:56:49.208836409 -0400
++++ taglib-1.7.2/bindings/c/tag_c.h	2012-06-25 01:01:19.796849385 -0400
+@@ -93,7 +93,9 @@
+   TagLib_File_Speex,
+   TagLib_File_TrueAudio,
+   TagLib_File_MP4,
+-  TagLib_File_ASF
++  TagLib_File_AIFF,
++  TagLib_File_ASF,
++  TagLib_File_WAV
+ } TagLib_File_Type;
+ 
+ /*!
