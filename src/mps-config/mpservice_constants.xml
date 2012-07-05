@@ -1,10 +1,11 @@
+
 <?xml version="1.0" encoding="utf-8"?>
 
 <parameters>
   
   <!-- version -->
   <param name="version__major__" value="0" type="integer" />
-  <param name="version__minor__" value="3" type="integer" />
+  <param name="version__minor__" value="4" type="integer" />
   <param name="version__release__" value="0" type="integer" />
   <param name="version__build__" value="" type="string" />
 
