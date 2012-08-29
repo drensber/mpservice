@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-MPSERVICE_PACKAGES="http://opensource.apple.com/tarballs/mDNSResponder/mDNSResponder-107.6.tar.gz http://ftp.easysw.com/pub/mxml/2.7/mxml-2.7.tar.gz http://sourceforge.net/projects/mpg123/files/mpg123/1.10.0/mpg123-1.10.0.tar.bz2 http://www.boa.org/boa-0.94.13.tar.gz http://developer.kde.org/~wheeler/files/src/taglib-1.7.2.tar.gz"
+MPSERVICE_PACKAGES="http://opensource.apple.com/tarballs/mDNSResponder/mDNSResponder-107.6.tar.gz http://ftp.easysw.com/pub/mxml/2.7/mxml-2.7.tar.gz http://sourceforge.net/projects/mpg123/files/mpg123/1.10.0/mpg123-1.10.0.tar.bz2 http://www.boa.org/boa-0.94.13.tar.gz http://developer.kde.org/~wheeler/files/src/taglib-1.7.2.tar.gz  http://www.mplayerhq.hu/MPlayer/releases/MPlayer-1.1.tar.gz"
 
 if [ ${#} == "1" ] && [ ${@} == "local" ]; then
   if [ "${THIRDPARTY_PACKAGE_DIR}" == "" ]; then

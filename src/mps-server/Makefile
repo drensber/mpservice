@@ -92,6 +92,8 @@ install: mps-server
 	cp -d mpg123/src/libmpg123/.libs/libmpg123.*so* $(MPSERVICE_LIB_DIR)
 	$(STRIP) $(MPSERVICE_LIB_DIR)/libmpg123.so.0.22.1 $(MPSERVICE_LIB_DIR)/libmpsserver.so.1.0 \
 		$(MPSERVICE_BIN_DIR)/mps-server
+	#cp mplayer/mplayer $(MPSERVICE_BIN_DIR)
+	#$(STRIP) $(MPSERVICE_BIN_DIR)/mplayer 
 
 .PHONY: clean
 clean:

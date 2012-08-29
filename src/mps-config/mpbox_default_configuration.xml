@@ -27,10 +27,16 @@
   <!-- Directory where the first music store is located or mounted -->
   <!-- Only one is supported for now, so this will always be __0 -->
   <param name="media_dir__0" value="/mnt/smb1" type="string" />
+
+  <param name="media_dir__0__uri" value="cifs://172.16.187.1/iTunes Music"
+         type="string" />
+
   <param name="media_dir__0__servername" value="172.16.187.1" type="string" />
   <param name="media_dir__0__servertype" value="cifs" type="string" />
-  <param name="media_dir__0__mountpoint" value="/mnt/smb1" type="string" />
   <param name="media_dir__0__servervolume" value="iTunes Music" type="string" />
+
+  <!-- these shouldn't even be configurable -->
+  <param name="media_dir__0__mountpoint" value="/mnt/smb1" type="string" />
   <param name="media_dir__0__mountoptions" 
 	 value="guest,user=guest" type="string" />
 </parameters>
